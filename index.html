@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detectando Firmware...</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: radial-gradient(circle at center, #111 0%, #000 100%);
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    padding: 20px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.08), transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.08), transparent 40%);
+    animation: bgPulse 6s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+
+  @keyframes bgPulse {
+    0% { opacity: 0.4; }
+    100% { opacity: 1; }
+  }
+
+  .screen {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 25px;
+    z-index: 1;
+    text-align: center;
+    transition: opacity 0.5s ease;
+  }
+
+  .cat {
+    width: 160px;
+    height: 160px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.5));
+    animation: float 3s ease-in-out infinite;
+    transition: filter 0.5s ease;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #00d4ff, #a855f7, #00d4ff);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 3s linear infinite;
+    transition: all 0.5s ease;
+  }
+
+  @keyframes shine {
+    to { background-position: 200% center; }
+  }
+
+  .title.ok {
+    background: linear-gradient(90deg, #4ade80, #22c55e, #4ade80);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .title.err {
+    background: linear-gradient(90deg, #f87171, #ef4444, #f87171);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .title.warn {
+    background: linear-gradient(90deg, #facc15, #f59e0b, #facc15);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .loader {
+    width: 320px;
+    max-width: 80vw;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    transition: opacity 0.3s ease;
+  }
+
+  .loader::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, #00d4ff, #a855f7, transparent);
+    border-radius: 999px;
+    animation: loading 1.4s ease-in-out infinite;
+  }
+
+  @keyframes loading {
+    0% { left: -40%; }
+    100% { left: 100%; }
+  }
+
+  .bar {
+    width: 320px;
+    max-width: 80vw;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .bar .fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    transition: width 1s ease;
+  }
+
+  .bar .fill.ok { background: linear-gradient(90deg, #22c55e, #4ade80); }
+  .bar .fill.err { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .bar .fill.warn { background: linear-gradient(90deg, #f59e0b, #facc15); }
+
+  #status {
+    font-size: 16px;
+    color: #888;
+    min-height: 22px;
+    letter-spacing: 0.5px;
+    transition: color 0.3s ease;
+  }
+
+  #status.ok { color: #4ade80; }
+  #status.warn { color: #facc15; }
+  #status.err { color: #f87171; }
+
+  #sub {
+    font-size: 13px;
+    color: #666;
+    max-width: 340px;
+    line-height: 1.5;
+  }
+
+  .dots::after {
+    content: '';
+    animation: dots 1.5s steps(4, end) infinite;
+  }
+
+  @keyframes dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+  }
+
+  .icon {
+    font-size: 34px;
+    line-height: 1;
+    display: inline-block;
+    animation: pop 0.5s ease-out;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0); opacity: 0; }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Botón Jailbreak */
+  #jailbreakBtn {
+    display: none;
+    margin-top: 10px;
+    padding: 16px 55px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #fff;
+    background: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%);
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.4),
+                0 0 40px rgba(168, 85, 247, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+    animation: popIn 0.5s ease-out, pulseGlow 2s ease-in-out infinite;
+    font-family: inherit;
+  }
+
+  #jailbreakBtn:hover,
+  #jailbreakBtn:active {
+    transform: scale(1.06);
+    box-shadow: 0 0 35px rgba(0, 212, 255, 0.7),
+                0 0 60px rgba(168, 85, 247, 0.6);
+  }
+
+  @keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    70% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 25px rgba(0, 212, 255, 0.4), 0 0 40px rgba(168, 85, 247, 0.3); }
+    50% { box-shadow: 0 0 35px rgba(0, 212, 255, 0.8), 0 0 60px rgba(168, 85, 247, 0.6); }
+  }
+
+  .fade-out {
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="screen" id="screen">
+  <img src="cat.png" alt="cat" class="cat" id="cat">
+  <div class="title" id="title">Detectando Firmware<span class="dots"></span></div>
+  <div class="loader" id="loader"></div>
+  <div class="bar" id="bar"><div class="fill" id="fill"></div></div>
+  <div id="status">Leyendo información de la consola...</div>
+  <div id="sub"></div>
+  <button id="jailbreakBtn">JAILBREAK</button>
+</div>
+
+<script>
+  const ua = navigator.userAgent;
+  const match = ua.match(/PlayStation 4 (\d+\.\d+)/);
+  const screen = document.getElementById('screen');
+  const title = document.getElementById('title');
+  const loader = document.getElementById('loader');
+  const bar = document.getElementById('bar');
+  const fill = document.getElementById('fill');
+  const status = document.getElementById('status');
+  const sub = document.getElementById('sub');
+  const btn = document.getElementById('jailbreakBtn');
+
+  const soportadas = ['13.02', '13.50', '13.52'];
+
+  // Acción del botón: ir a jb.html
+  btn.addEventListener('click', () => {
+    screen.classList.add('fade-out');
+    setTimeout(() => { window.location.href = 'jb.html'; }, 500);
+  });
+
+  // Fase 1: Detección tras 1.5s
+  setTimeout(() => {
+    loader.style.display = 'none';
+    bar.style.display = 'block';
+
+    if (match) {
+      const firmware = match[1];
+
+      if (soportadas.includes(firmware)) {
+        // ✅ COMPATIBLE
+        title.className = 'title ok';
+        title.innerHTML = '<span class="icon">✅</span> Firmware Compatible';
+        status.className = 'ok';
+        status.textContent = `PS4 Firmware ${firmware} detectado`;
+        sub.textContent = 'Presiona el botón para iniciar el Jailbreak.';
+        fill.className = 'fill ok';
+        setTimeout(() => { fill.style.width = '100%'; }, 50);
+
+        // Mostrar el botón Jailbreak
+        setTimeout(() => { btn.style.display = 'inline-block'; }, 700);
+
+      } else {
+        // ❌ PS4 con firmware no soportado
+        title.className = 'title err';
+        title.innerHTML = '<span class="icon">❌</span> Firmware No Soportado';
+        status.className = 'err';
+        status.textContent = `PS4 Firmware ${firmware}`;
+        sub.textContent = 'Este host solo soporta 13.02, 13.50 y 13.52.';
+        fill.className = 'fill err';
+        setTimeout(() => { fill.style.width = '100%'; }, 50);
+      }
+
+    } else {
+      // ❌ No es PS4
+      title.className = 'title err';
+      title.innerHTML = '<span class="icon">❌</span> Dispositivo No Soportado';
+      status.className = 'err';
+      status.textContent = 'Unsopported PC/Android';
+      sub.textContent = 'Esta página solo funciona desde el navegador de una PlayStation 4.';
+      fill.className = 'fill err';
+      setTimeout(() => { fill.style.width = '100%'; }, 50);
+    }
+  }, 1500);
+</script>
+
+</body>
+</html>
